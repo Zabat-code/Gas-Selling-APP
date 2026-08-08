@@ -1,0 +1,29 @@
+# Ignore everything at the top level by default (Downloads has unrelated folders)
+/*
+
+# Re-include only the billing app project
+!/.gitignore
+!/GasStationBilling.Api/
+!/frontend/
+!/README.md
+!/start.bat
+!/start.ps1
+!/install-everything.bat
+!/install-dependencies.ps1
+!/install-requirements.ps1
+
+# Build & dependency artifacts
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+
+# Local SQLite database (auto-created + seeded on startup, not needed in git)
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# OS / editor junk
+**/.DS_Store
+**/Thumbs.db
+desktop.ini
