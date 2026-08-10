@@ -1,52 +1,57 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GasStationBilling.Api.Data;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using GasStationBilling.Api.Models;
-using GasStationBilling.Api.Utils;
+using GasStationBilling.Api.Services;
 
 namespace GasStationBilling.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class EmployeesController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    public EmployeesController(AppDbContext db) => _db = db;
+    private readonly IEmployeeService _employees;
+    public EmployeesController(IEmployeeService employees) => _employees = employees;
+
+    // The caller's id is taken from the validated JWT (NameIdentifier).
+    private int CurrentUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
     public async Task<ActionResult<List<EmployeeResponse>>> GetAll()
-        => await _db.Employees
-            .AsNoTracking()
-            .Select(e => new EmployeeResponse(e.Id, e.Name, e.Username, e.IsAdmin))
-            .ToListAsync();
+        => await _employees.GetAllAsync();
 
     [HttpPost]
     public async Task<ActionResult<EmployeeResponse>> Create(CreateEmployeeRequest request)
     {
-        // This system doesn't use session tokens, so the admin check is done
-        // by confirming that the EmployeeId sent by the frontend (saved
-        // locally after login) really belongs to an administrator.
-        var requester = await _db.Employees.FindAsync(request.RequesterId);
-        if (requester is null || !requester.IsAdmin)
-            return StatusCode(403, "Only an administrator can create users");
-
-        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            return BadRequest("Username and password are required");
-
-        if (await _db.Employees.AnyAsync(e => e.Username == request.Username))
-            return BadRequest("That username already exists");
-
-        var employee = new Employee
+        try
         {
-            Name = request.Name,
-            Username = request.Username,
-            PasswordHash = PasswordHasher.Hash(request.Password),
-            IsAdmin = request.IsAdmin
-        };
+                        var employee = await _employees.CreateAsync(CurrentUserId(), request);
+            return employee;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
-        _db.Employees.Add(employee);
-        await _db.SaveChangesAsync();
-
-        return new EmployeeResponse(employee.Id, employee.Name, employee.Username, employee.IsAdmin);
+    // Grants or revokes the price-editing permission for a user (admin only).
+    [HttpPut("{id}/permissions")]
+    public async Task<IActionResult> UpdatePermissions(int id, UpdateEmployeePermissionsRequest request)
+    {
+        try
+        {
+                        var result = await _employees.UpdatePermissionsAsync(id, CurrentUserId(), request);
+            if (result is null) return NotFound();
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, ex.Message);
+        }
     }
 }

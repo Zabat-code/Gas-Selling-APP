@@ -31,7 +31,8 @@ public class AppDbContext : DbContext
                 Username = "user1",
                 // SHA256 hash of "123456". Change this as soon as you set up the system.
                 PasswordHash = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
-                IsAdmin = false
+                IsAdmin = false,
+                CanModifyPrices = false
             },
             new Employee
             {
@@ -40,7 +41,8 @@ public class AppDbContext : DbContext
                 Username = "admin1",
                 // SHA256 hash of "admin123". Change this as soon as you set up the system.
                 PasswordHash = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
-                IsAdmin = true
+                IsAdmin = true,
+                CanModifyPrices = true
             }
         );
 
@@ -51,7 +53,7 @@ public class AppDbContext : DbContext
         );
 
         modelBuilder.Entity<Settings>().HasData(
-            new Settings { Id = 1, StationName = "Station" }
+            new Settings { Id = 1, StationName = "Station", AutoPrintInvoice = false, TaxRate = 0m }
         );
     }
 }

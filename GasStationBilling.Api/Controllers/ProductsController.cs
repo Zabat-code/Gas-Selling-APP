@@ -1,42 +1,72 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GasStationBilling.Api.Data;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using GasStationBilling.Api.Models;
+using GasStationBilling.Api.Services;
 
 namespace GasStationBilling.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProductsController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    public ProductsController(AppDbContext db) => _db = db;
+    private readonly IProductService _products;
+    public ProductsController(IProductService products) => _products = products;
+
+    // The caller's id is always taken from the validated JWT (NameIdentifier),
+    // never from the request body, so it cannot be spoofed.
+    private int CurrentUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
     public async Task<ActionResult<List<Product>>> GetAll()
-        => await _db.Products.AsNoTracking().ToListAsync();
+        => await _products.GetAllAsync();
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Product>> GetById(int id)
     {
-        var product = await _db.Products.FindAsync(id);
+        var product = await _products.GetByIdAsync(id);
         return product is null ? NotFound() : Ok(product);
     }
 
-    // Updates sale price, purchase price and tank capacity in one call
+    // Updates sale price and purchase price. Requires the "CanModifyPrices"
+    // permission (granted by an admin) or an administrator account.
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, UpdateProductRequest request)
+    public async Task<IActionResult> UpdatePrices(int id, UpdateProductRequest request)
     {
-        var product = await _db.Products.FindAsync(id);
-        if (product is null) return NotFound();
+        try
+        {
+            var product = await _products.UpdatePricesAsync(id, CurrentUserId(), request);
+            if (product is null) return NotFound();
+            return Ok(product);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
-        if (request.TankCapacityGallons <= 0) return BadRequest("Capacity must be greater than 0");
-
-        product.CurrentSalePrice = request.CurrentSalePrice;
-        product.CurrentPurchasePrice = request.CurrentPurchasePrice;
-        product.TankCapacityGallons = request.TankCapacityGallons;
-        await _db.SaveChangesAsync();
-
-        return Ok(product);
+    // Updates tank/warehouse capacity (administrator only).
+    [HttpPut("{id}/tank-capacity")]
+    public async Task<IActionResult> UpdateTankCapacity(int id, UpdateTankCapacityRequest request)
+    {
+        try
+        {
+            var product = await _products.UpdateTankCapacityAsync(id, CurrentUserId(), request);
+            if (product is null) return NotFound();
+            return Ok(product);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }

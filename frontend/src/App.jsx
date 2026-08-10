@@ -15,10 +15,11 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('station-theme') || 'dark')
   const [language, setLanguage] = useState(() => localStorage.getItem('station-language') || 'en')
   const [stationName, setStationName] = useState('Station')
+  const [autoPrintInvoice, setAutoPrintInvoice] = useState(false)
 
   const t = (key, vars) => translate(language, key, vars)
 
-  useEffect(() => {
+    useEffect(() => {
     document.body.setAttribute('data-theme', theme)
     localStorage.setItem('station-theme', theme)
   }, [theme])
@@ -28,11 +29,24 @@ export default function App() {
   }, [language])
 
   useEffect(() => {
-    api.getSettings().then((c) => setStationName(c.stationName)).catch(() => {})
+    const raw = localStorage.getItem('auth_session')
+    if (raw) setSession(JSON.parse(raw))
   }, [])
 
-  if (!session) {
-    return <Login onLogin={setSession} t={t} />
+  useEffect(() => {
+    api.getSettings()
+      .then((c) => {
+        setStationName(c.stationName)
+        setAutoPrintInvoice(!!c.autoPrintInvoice)
+      })
+      .catch(() => {})
+  }, [])
+
+    if (!session) {
+    return <Login onLogin={(s) => {
+      localStorage.setItem('auth_session', JSON.stringify(s))
+      setSession(s)
+    }} t={t} />
   }
 
   const SCREENS = [
@@ -64,17 +78,21 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="user-chip">
-          {session.name}
-          <button className="logout-btn" onClick={() => setSession(null)}>{t('signOut')}</button>
-        </div>
+                            <div className="user-chip">
+            {session.name}
+            <button className="logout-btn" onClick={() => {
+              api.logout()
+              localStorage.removeItem('auth_session')
+              setSession(null)
+            }}>{t('signOut')}</button>
+          </div>
       </header>
 
       <main>
         {screen === 'dashboard' && <Dashboard stationName={stationName} t={t} />}
-        {screen === 'sale' && <RegisterSale employeeId={session.employeeId} t={t} />}
-        {screen === 'purchase' && <RegisterPurchase t={t} />}
-        {screen === 'prices' && <Prices t={t} />}
+        {screen === 'sale' && <RegisterSale session={session} autoPrintInvoice={autoPrintInvoice} stationName={stationName} t={t} />}
+        {screen === 'purchase' && <RegisterPurchase session={session} autoPrintInvoice={autoPrintInvoice} stationName={stationName} t={t} />}
+        {screen === 'prices' && <Prices session={session} t={t} />}
         {screen === 'reports' && <Reports t={t} />}
         {screen === 'options' && (
           <Options
@@ -85,6 +103,8 @@ export default function App() {
             onChangeLanguage={setLanguage}
             stationName={stationName}
             onChangeStationName={setStationName}
+            autoPrintInvoice={autoPrintInvoice}
+            onChangeAutoPrint={setAutoPrintInvoice}
             t={t}
           />
         )}

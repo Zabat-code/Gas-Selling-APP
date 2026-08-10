@@ -22,7 +22,8 @@ namespace GasStationBilling.Api.Migrations
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Username = table.Column<string>(type: "TEXT", nullable: false),
                     PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "INTEGER", nullable: false)
+                    IsAdmin = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CanModifyPrices = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -51,7 +52,9 @@ namespace GasStationBilling.Api.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    StationName = table.Column<string>(type: "TEXT", nullable: false)
+                    StationName = table.Column<string>(type: "TEXT", nullable: false),
+                    AutoPrintInvoice = table.Column<bool>(type: "INTEGER", nullable: false),
+                    TaxRate = table.Column<decimal>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -117,11 +120,11 @@ namespace GasStationBilling.Api.Migrations
 
             migrationBuilder.InsertData(
                 table: "Employees",
-                columns: new[] { "Id", "IsAdmin", "Name", "PasswordHash", "Username" },
+                columns: new[] { "Id", "CanModifyPrices", "IsAdmin", "Name", "PasswordHash", "Username" },
                 values: new object[,]
                 {
-                    { 1, false, "Main Employee", "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92", "user1" },
-                    { 2, true, "Administrator", "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9", "admin1" }
+                    { 1, false, false, "Main Employee", "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92", "user1" },
+                    { 2, true, true, "Administrator", "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9", "admin1" }
                 });
 
             migrationBuilder.InsertData(
@@ -136,8 +139,8 @@ namespace GasStationBilling.Api.Migrations
 
             migrationBuilder.InsertData(
                 table: "Settings",
-                columns: new[] { "Id", "StationName" },
-                values: new object[] { 1, "Station" });
+                columns: new[] { "Id", "AutoPrintInvoice", "StationName", "TaxRate" },
+                values: new object[] { 1, false, "Station", 0m });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Purchases_ProductId",

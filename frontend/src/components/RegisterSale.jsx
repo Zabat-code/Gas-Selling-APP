@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import Invoice from './Invoice'
 
-export default function RegisterSale({ employeeId, t }) {
+const METHOD_KEY = { Cash: 'sale_cash', Card: 'sale_card', Transfer: 'sale_transfer' }
+
+export default function RegisterSale({ session, autoPrintInvoice, stationName, t }) {
   const [products, setProducts] = useState([])
   const [productId, setProductId] = useState('')
   const [gallons, setGallons] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('Cash')
   const [message, setMessage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [invoice, setInvoice] = useState(null)
 
   useEffect(() => {
     api.getProducts().then((data) => {
@@ -15,6 +19,14 @@ export default function RegisterSale({ employeeId, t }) {
       if (data.length) setProductId(String(data[0].id))
     })
   }, [])
+
+  // When "print automatically" is enabled, open the print dialog right away.
+  useEffect(() => {
+    if (invoice && autoPrintInvoice) {
+      const id = setTimeout(() => window.print(), 150)
+      return () => clearTimeout(id)
+    }
+  }, [invoice, autoPrintInvoice])
 
   const selectedProduct = products.find((p) => String(p.id) === productId)
   const total = selectedProduct && gallons ? selectedProduct.currentSalePrice * Number(gallons) : 0
@@ -26,11 +38,23 @@ export default function RegisterSale({ employeeId, t }) {
     try {
       const sale = await api.registerSale({
         productId: Number(productId),
-        employeeId,
         quantityGallons: Number(gallons),
         paymentMethod,
       })
       setMessage({ type: 'success', text: t('sale_success', { ticket: sale.ticketNumber }) })
+      setInvoice({
+        title: t('invoice_sale'),
+        number: sale.ticketNumber,
+        date: new Date(sale.dateTime || Date.now()).toLocaleString(),
+        employee: session?.name || '',
+        description: selectedProduct?.name || '',
+        descLabel: t('sale_product'),
+        qtyLabel: t('sale_gallons'),
+        quantity: sale.quantityGallons,
+        unitPrice: sale.unitSalePrice,
+        total: sale.total,
+        paymentMethod: t(METHOD_KEY[sale.paymentMethod] || 'sale_cash'),
+      })
       setGallons('')
     } catch (err) {
       setMessage({ type: 'error', text: err.message || t('sale_errorFallback') })
@@ -62,7 +86,7 @@ export default function RegisterSale({ employeeId, t }) {
             <input
               type="number"
               step="0.01"
-              min="0"
+              min="0.01"
               value={gallons}
               onChange={(e) => setGallons(e.target.value)}
               placeholder="0.00"
@@ -86,11 +110,15 @@ export default function RegisterSale({ employeeId, t }) {
             </span>
           </div>
 
-          <button type="submit" className="btn btn-primary btn-block" disabled={submitting || !gallons}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={submitting || !gallons || Number(gallons) <= 0}>
             {submitting ? t('sale_submitting') : t('sale_submit')}
           </button>
         </form>
       </div>
+
+      {invoice && (
+        <Invoice data={invoice} stationName={stationName} t={t} onClose={() => setInvoice(null)} />
+      )}
     </div>
   )
 }

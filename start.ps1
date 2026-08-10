@@ -59,6 +59,16 @@ if (-not (Test-Path $backendDll)) {
     Write-Host "Backend built." -ForegroundColor Green
 }
 
+# ---- Run the backend test suite (validation of business rules) ----
+$testsProject = "$root\GasStationBilling.Api.Tests\GasStationBilling.Api.Tests.csproj"
+if (Test-Path $testsProject) {
+    Write-Host "Running backend tests..." -ForegroundColor Cyan
+    Push-Location $root
+    dotnet test $testsProject --nologo -v q
+    Pop-Location
+    Write-Host ""
+}
+
 # ---- Start both servers ----
 Write-Host "Starting backend on http://localhost:5000 ..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendDir'; dotnet run"

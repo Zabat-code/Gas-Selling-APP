@@ -1,42 +1,32 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GasStationBilling.Api.Data;
+using Microsoft.AspNetCore.Authorization;
 using GasStationBilling.Api.Models;
+using GasStationBilling.Api.Services;
 
 namespace GasStationBilling.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class SettingsController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    public SettingsController(AppDbContext db) => _db = db;
+    private readonly ISettingsService _settings;
+    public SettingsController(ISettingsService settings) => _settings = settings;
 
     [HttpGet]
     public async Task<ActionResult<Settings>> Get()
-    {
-        var settings = await _db.Settings.FindAsync(1);
-        return settings ?? new Settings();
-    }
+        => await _settings.GetAsync();
 
     [HttpPut]
     public async Task<ActionResult<Settings>> Update(SettingsRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.StationName))
-            return BadRequest("Name cannot be empty");
-
-        var settings = await _db.Settings.FindAsync(1);
-        if (settings is null)
+        try
         {
-            settings = new Settings { Id = 1, StationName = request.StationName };
-            _db.Settings.Add(settings);
+            return await _settings.UpdateAsync(request);
         }
-        else
+        catch (InvalidOperationException ex)
         {
-            settings.StationName = request.StationName;
+            return BadRequest(ex.Message);
         }
-
-        await _db.SaveChangesAsync();
-        return settings;
     }
 }

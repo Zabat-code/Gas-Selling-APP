@@ -52,6 +52,9 @@ export default function Dashboard({ stationName, t }) {
                   {p.currentStock.toLocaleString(undefined, { maximumFractionDigits: 1 })}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('dashboard_galAvailable')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {t('dashboard_capacity')}: {p.tankCapacityGallons.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
               </div>
             </div>
           </div>
