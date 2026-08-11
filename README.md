@@ -69,15 +69,23 @@ create a new admin from the **Options** screen and then stop using the test ones
 
 ## Notes on admin permissions
 
-This system doesn't use session tokens (JWT) — it's intentionally simple for
-a single point of sale. The "only admin can create users" check happens on
-the backend, by confirming that the `EmployeeId` that logged in really has
-`IsAdmin = true`. That's enough for a small business with trusted staff, but
-if you ever expose this system to the internet (not just your local network),
-let me know and we'll harden it with real authentication.
+This system now uses **JWT authentication** issued by `AuthController`.
+Clients must sign in and send `Authorization: Bearer <token>`.
+The "only admin can create users" check happens on the backend from the
+authenticated token identity, not from client-provided IDs in the request body.
+
+## Release Notes
+
+### v1.1.0
+- Backend: JWT authentication replacing client-supplied requester/employee IDs.
+- Backend: refactored services/interfaces for sales, purchases, inventory, products, reports, settings, and employees.
+- Frontend: updated API client to store and send JWT; added login/logout/auth state handling.
+- Frontend: improved invoice/receipt layout for large numbers (fixed-width columns, overflow handling, and print styles).
+
+### v1.0.0
+- Initial release: backend in C# (ASP.NET Core + SQLite) and frontend in React (Vite).
 
 ## Possible next steps
 
-- Sales history with ticket printing
 - Export reports to Excel/PDF
 - Alerts when a tank drops below a certain level
