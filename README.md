@@ -3,6 +3,21 @@
 Full project: backend in C# (ASP.NET Core + SQLite) and frontend in React (Vite).
 The app UI can switch between English and Spanish from **Options**.
 
+## Security notice — demo project
+
+This repository is a **public portfolio/demo project**. It intentionally ships with
+sample accounts and a public development JWT key so it can run after cloning.
+Those defaults are not secure for real-world use.
+
+Before using this system with real customers, money, employees, or a public server:
+
+1. Replace `Jwt:Key` in `GasStationBilling.Api/appsettings.json` with a new, long random value, or provide it through the `Jwt__Key` environment variable.
+2. Replace or remove the default demo accounts and passwords listed below.
+3. Use a protected production database instead of the local SQLite demo database.
+4. Configure HTTPS, backups, access controls, logging, and appropriate business/security review.
+
+The repository contains no production credentials. The value committed in `appsettings.json` is a deliberately public demo placeholder.
+
 ## Structure
 
 ```

@@ -14,7 +14,9 @@ namespace GasStationBilling.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private const string Secret = "cambia-esta-clave-super-secreta-en-produccion-2026-abcdef123456";
+    // PUBLIC DEMO DEFAULT ONLY. Replace Jwt:Key before any real deployment.
+    // Never use this value to protect real customer, employee, or payment data.
+    private const string PublicDemoJwtKey = "PUBLIC-DEMO-ONLY-REPLACE-JWT-KEY-BEFORE-DEPLOYMENT-2026";
 
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
@@ -52,7 +54,9 @@ public class AuthController : ControllerBase
             new("canModifyPrices", (employee.IsAdmin || employee.CanModifyPrices).ToString().ToLowerInvariant())
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? Secret));
+        var jwtKey = _config["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(jwtKey)) jwtKey = PublicDemoJwtKey;
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
